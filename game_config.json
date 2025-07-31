@@ -1,0 +1,259 @@
+{
+  "items": {
+    "brass_key": {
+      "name": "brass key",
+      "description": "A small brass key with intricate engravings. It looks like it might unlock something important.",
+      "can_take": true,
+      "aliases": ["key"],
+      "properties": {
+        "unlocks": "treasure_chest"
+      }
+    },
+    "treasure_chest": {
+      "name": "treasure chest",
+      "description": "A heavy wooden chest bound with iron bands. It has a brass lock that matches your key.",
+      "can_take": false,
+      "aliases": ["chest", "box"],
+      "properties": {
+        "locked": true,
+        "contains": ["gold_coins", "magic_scroll"]
+      }
+    },
+    "wooden_door": {
+      "name": "wooden door",
+      "description": "A sturdy oak door with iron hinges. It appears to be locked.",
+      "can_take": false,
+      "aliases": ["door"],
+      "properties": {
+        "locked": true,
+        "blocks_exit": "north"
+      },
+      "verb_interactions": {
+        "push": {
+          "response": "You push against the wooden door, but it won't budge. It's securely locked.",
+          "requires": [],
+          "effects": {
+            "score": 1
+          }
+        },
+        "listen": {
+          "response": "You press your ear against the door. You hear a faint echo from the other side, suggesting a large chamber beyond.",
+          "requires": [],
+          "effects": {
+            "score": 5,
+            "set_player_property": {"heard_treasure_room": true}
+          }
+        },
+        "touch": {
+          "response": "The door feels solid and well-made. The wood is smooth but the iron lock is cold to the touch.",
+          "requires": [],
+          "effects": {
+            "score": 2
+          }
+        }
+      }
+    },
+    "iron_key": {
+      "name": "iron key",
+      "description": "A heavy iron key, old and weathered. It looks like it belongs to an ancient door.",
+      "can_take": true,
+      "aliases": ["key", "old key"],
+      "properties": {
+        "unlocks": "wooden_door"
+      }
+    },
+    "gold_coins": {
+      "name": "gold coins",
+      "description": "A handful of gleaming gold coins. They're quite valuable!",
+      "can_take": true,
+      "aliases": ["coins", "gold"],
+      "properties": {
+        "value": 100
+      }
+    },
+    "magic_scroll": {
+      "name": "magic scroll",
+      "description": "An ancient scroll covered in mystical runes. It radiates magical energy.",
+      "can_take": true,
+      "aliases": ["scroll"],
+      "properties": {
+        "spell": "teleport"
+      },
+      "verb_interactions": {
+        "read": {
+          "response": "The scroll contains ancient words in a mystical language: 'Teleportus Instantaneous'. You feel the magical power within these words!",
+          "requires": [],
+          "effects": {
+            "score": 15,
+            "set_player_property": {"knows_teleport_spell": true}
+          }
+        },
+        "cast": {
+          "response": "You speak the magical words from the scroll! Reality bends around you as you are teleported to the treasure room!",
+          "requires": ["flag:door_unlocked", "property:knows_teleport_spell=true"],
+          "effects": {
+            "teleport_to": "treasure_room",
+            "remove_item": true,
+            "score": 100,
+            "set_flag": {"scroll_used": true}
+          },
+          "failure_response": "The magical words seem to have no effect. Perhaps you need to read the scroll first, or unlock the path?"
+        }
+      }
+    },
+    "lantern": {
+      "name": "brass lantern",
+      "description": "A brass lantern with a glass chimney. It's currently unlit.",
+      "can_take": true,
+      "aliases": ["lamp", "light"],
+      "properties": {
+        "lit": false,
+        "fuel": 100
+      },
+      "verb_interactions": {
+        "light": {
+          "response": "You light the brass lantern. It casts a warm, steady glow around you.",
+          "requires": [],
+          "effects": {
+            "score": 10,
+            "set_item_property": {"lit": true}
+          }
+        },
+        "extinguish": {
+          "response": "You extinguish the lantern. The area becomes dimmer.",
+          "requires": [],
+          "effects": {
+            "set_item_property": {"lit": false}
+          }
+        },
+        "shake": {
+          "response": "You shake the lantern and hear oil sloshing inside. It still has plenty of fuel.",
+          "requires": [],
+          "effects": {
+            "score": 2
+          }
+        }
+      }
+    }
+  },
+  "rooms": {
+    "entrance_hall": {
+      "name": "Entrance Hall",
+      "description": "You stand in a grand entrance hall with marble floors and high ceilings. Portraits of long-dead nobles line the walls. A wooden door blocks the passage to the north.",
+      "exits": {
+        "south": "garden",
+        "east": "library",
+        "west": "kitchen"
+      },
+      "items": ["wooden_door", "lantern"],
+      "properties": {
+        "starting_room": true
+      }
+    },
+    "garden": {
+      "name": "Garden",
+      "description": "A beautiful garden with blooming flowers and a small fountain. The air is fresh and clean here.",
+      "exits": {
+        "north": "entrance_hall"
+      },
+      "items": ["iron_key"],
+      "properties": {}
+    },
+    "library": {
+      "name": "Library",
+      "description": "A vast library filled with ancient books and scrolls. Dust motes dance in the shafts of light from tall windows.",
+      "exits": {
+        "west": "entrance_hall"
+      },
+      "items": ["brass_key"],
+      "properties": {}
+    },
+    "kitchen": {
+      "name": "Kitchen",
+      "description": "A large medieval kitchen with a massive hearth and copper pots. The smell of old cooking fires lingers.",
+      "exits": {
+        "east": "entrance_hall"
+      },
+      "items": ["treasure_chest"],
+      "properties": {}
+    },
+    "treasure_room": {
+      "name": "Treasure Room",
+      "description": "A hidden treasure room behind the wooden door! Gold and jewels glitter in the lantern light. You've discovered the main treasure of this place!",
+      "exits": {
+        "south": "entrance_hall"
+      },
+      "items": [],
+      "properties": {
+        "victory_room": true
+      }
+    }
+  },
+  "event_handlers": [
+    {
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "use_item",
+        "player_has_item": "iron_key"
+      },
+      "script": "if event.data.get('item2') and event.data['item2'].name == 'wooden door':\n    door = event.data['item2']\n    if door.get_property('locked'):\n        door.set_property('locked', False)\n        # Add the north exit to entrance_hall\n        entrance_hall = game_state.get_room('entrance_hall')\n        entrance_hall.exits['north'] = 'treasure_room'\n        response = 'You insert the iron key into the wooden door and turn it. Click! The door unlocks and swings open, revealing a passage to the north!'\n        player.score += 50\n        game_state.set_flag('door_unlocked', True)\n    else:\n        response = 'The wooden door is already unlocked.'\nelse:\n    response = None"
+    },
+    {
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "use_item",
+        "player_has_item": "brass_key"
+      },
+      "script": "if event.data.get('item2') and event.data['item2'].name == 'treasure chest':\n    chest = event.data['item2']\n    if chest.get_property('locked'):\n        chest.set_property('locked', False)\n        chest.description = 'An open treasure chest revealing its precious contents within!'\n        # Add the treasure items to the room\n        current_room = game_state.get_room(player.current_room)\n        if 'gold_coins' in game_state.items:\n            current_room.add_item(game_state.items['gold_coins'])\n        if 'magic_scroll' in game_state.items:\n            current_room.add_item(game_state.items['magic_scroll'])\n        response = 'You insert the brass key into the treasure chest and turn it. The lock clicks open! Inside you find gold coins and a magic scroll!'\n        player.score += 100\n        game_state.set_flag('chest_opened', True)\n    else:\n        response = 'The treasure chest is already open.'\nelse:\n    response = None"
+    },
+    {
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "unlock_attempt"
+      },
+      "script": "target = event.data.get('target')\nif target and target.get_property('locked'):\n    required_key = target.get_property('unlocks')\n    response = f'The {target.name} is locked. You need to find the right key to unlock it.'\nelse:\n    response = None"
+    },
+    {
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "attempt_move"
+      },
+      "script": "direction = event.data.get('direction')\nfrom_room = event.data.get('from_room')\nif from_room == 'entrance_hall' and direction == 'north':\n    if not game_state.get_flag('door_unlocked'):\n        response = 'BLOCK:The wooden door blocks your path to the north. It appears to be locked.'\n    else:\n        response = None\nelse:\n    response = None"
+    },
+    {
+      "type": "script",
+      "scope": "room:treasure_room",
+      "conditions": {
+        "event_type": "look_room"
+      },
+      "script": "if not game_state.get_flag('victory_announced'):\n    game_state.set_flag('victory_announced', True)\n    player.score += 200\n    response = '\\n\\n*** CONGRATULATIONS! ***\\nYou have discovered the legendary treasure room! Your adventure is complete!'\nelse:\n    response = None"
+    },
+    {
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "item_taken"
+      },
+      "script": "item = event.data.get('item')\nif item and item.name == 'gold coins':\n    player.score += item.get_property('value', 0)\n    response = f'The gold coins are worth {item.get_property(\"value\", 0)} points!'\nelse:\n    response = None"
+    },
+    {
+      "type": "script", 
+      "scope": "global",
+      "conditions": {
+        "event_type": "use_item",
+        "player_has_item": "magic_scroll"
+      },
+      "script": "item = event.data.get('item1')\nif item and item.name == 'magic_scroll':\n    spell = item.get_property('spell')\n    if spell == 'teleport':\n        # Teleport player to treasure room if they've unlocked the door\n        if game_state.get_flag('door_unlocked'):\n            old_room = player.current_room\n            player.current_room = 'treasure_room'\n            player.score += 75\n            response = f'The scroll glows brightly! Ancient words of power fill the air as reality bends around you. You are magically transported to the treasure room!'\n            # Remove the scroll (it's consumed)\n            player.remove_item(item)\n            game_state.set_flag('scroll_used', True)\n        else:\n            response = 'The scroll flickers weakly. The magic seems blocked - perhaps you need to unlock the path first.'\n    else:\n        response = f'You try to activate the scroll, but nothing happens. The {spell} spell is beyond your understanding.'\nelse:\n    response = None"
+    }
+  ],
+  "initial_flags": {
+    "door_unlocked": false,
+    "chest_opened": false,
+    "victory_announced": false,
+    "scroll_used": false
+  }
+}

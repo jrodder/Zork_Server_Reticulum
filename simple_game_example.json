@@ -1,0 +1,138 @@
+{
+  "_comment": "This is a simple example game for beginners to learn from",
+  
+  "items": {
+    "_comment": "Items are objects players can interact with",
+    
+    "old_key": {
+      "name": "old key",
+      "description": "A rusty old key with teeth worn smooth by age. It might unlock something nearby.",
+      "can_take": true,
+      "aliases": ["key", "rusty key"],
+      "properties": {
+        "unlocks": "wooden_chest"
+      }
+    },
+    
+    "wooden_chest": {
+      "name": "wooden chest", 
+      "description": "A sturdy wooden chest with iron bands. It has a small keyhole in the front.",
+      "can_take": false,
+      "aliases": ["chest", "box"],
+      "properties": {
+        "locked": true,
+        "contains": ["gold_coins"]
+      }
+    },
+    
+    "gold_coins": {
+      "name": "gold coins",
+      "description": "A small pouch of shiny gold coins. They jingle pleasantly when shaken.",
+      "can_take": true,
+      "aliases": ["coins", "gold", "pouch"],
+      "properties": {
+        "value": 50
+      }
+    },
+    
+    "red_flower": {
+      "name": "red flower",
+      "description": "A beautiful red flower with a sweet fragrance. It seems special somehow.",
+      "can_take": true,
+      "aliases": ["flower", "rose"],
+      "properties": {
+        "magical": true
+      }
+    }
+  },
+  
+  "rooms": {
+    "_comment": "Rooms are the places players can visit",
+    
+    "cottage": {
+      "name": "Inside the Cottage",
+      "description": "You are inside a cozy cottage. Sunlight streams through clean windows, and there's a comfortable chair by the fireplace. A wooden chest sits in the corner.",
+      "exits": {
+        "out": "garden"
+      },
+      "items": ["wooden_chest"],
+      "properties": {
+        "starting_room": true
+      }
+    },
+    
+    "garden": {
+      "name": "Cottage Garden", 
+      "description": "You stand in a lovely garden behind the cottage. Flowers bloom everywhere, and bees buzz lazily from blossom to blossom. A path leads into the woods to the east.",
+      "exits": {
+        "in": "cottage",
+        "east": "forest_path"
+      },
+      "items": ["old_key", "red_flower"],
+      "properties": {}
+    },
+    
+    "forest_path": {
+      "name": "Forest Path",
+      "description": "You walk along a winding path through tall trees. The air is cool and fresh here. Birds sing in the branches above you.",
+      "exits": {
+        "west": "garden",
+        "north": "clearing"
+      },
+      "items": [],
+      "properties": {}
+    },
+    
+    "clearing": {
+      "name": "Forest Clearing",
+      "description": "You emerge into a peaceful clearing surrounded by ancient oak trees. This feels like a magical place where wonderful things might happen.",
+      "exits": {
+        "south": "forest_path"
+      },
+      "items": [],
+      "properties": {
+        "magical_place": true
+      }
+    }
+  },
+  
+  "event_handlers": [
+    {
+      "_comment": "When player uses the old key on the wooden chest",
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "use_item",
+        "player_has_item": "old_key"
+      },
+      "script": "if event.data.get('item2') and event.data['item2'].name == 'wooden chest':\n    chest = event.data['item2']\n    if chest.get_property('locked'):\n        chest.set_property('locked', False)\n        chest.description = 'An open wooden chest with its treasures visible inside.'\n        current_room = game_state.get_room(player.current_room)\n        if 'gold_coins' in game_state.items:\n            current_room.add_item(game_state.items['gold_coins'])\n        response = 'You insert the old key and turn it. Click! The chest opens to reveal a pouch of gold coins inside!'\n        player.score += 25\n        game_state.set_flag('chest_opened', True)\n    else:\n        response = 'The wooden chest is already open.'\nelse:\n    response = None"
+    },
+    
+    {
+      "_comment": "Special event when player brings red flower to magical clearing",
+      "type": "script", 
+      "scope": "room:clearing",
+      "conditions": {
+        "event_type": "look_room",
+        "player_has_item": "red_flower"
+      },
+      "script": "if not game_state.get_flag('flower_magic_triggered'):\n    game_state.set_flag('flower_magic_triggered', True)\n    player.score += 100\n    response = '\\nSudenly, the red flower in your possession begins to glow! The clearing fills with magical sparkles, and you hear the distant sound of fairy laughter. You feel very lucky to have witnessed this magical moment!'\nelse:\n    response = None"
+    },
+    
+    {
+      "_comment": "Give points when player takes valuable items",
+      "type": "script",
+      "scope": "global", 
+      "conditions": {
+        "event_type": "item_taken"
+      },
+      "script": "item = event.data.get('item')\nif item and item.get_property('value'):\n    points = item.get_property('value')\n    player.score += points\n    response = f'Taking the {item.name} earned you {points} points!'\nelse:\n    response = None"
+    }
+  ],
+  
+  "initial_flags": {
+    "_comment": "These are the starting conditions for your game",
+    "chest_opened": false,
+    "flower_magic_triggered": false
+  }
+}

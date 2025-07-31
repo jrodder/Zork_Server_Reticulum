@@ -1,0 +1,536 @@
+{
+  "_comment": "COMPREHENSIVE EXAMPLE GAME - Showcasing all features of the Scriptable Zork Engine",
+  "_description": "This example demonstrates: verb interactions, event scripting, conditional logic, item combinations, room mechanics, player properties, flags, and complex interactions",
+
+  "items": {
+    "ancient_tome": {
+      "name": "ancient tome",
+      "description": "A massive leather-bound book filled with arcane knowledge. The pages seem to shimmer with magical energy.",
+      "can_take": true,
+      "aliases": ["book", "tome", "grimoire"],
+      "properties": {
+        "knowledge_type": "ancient_magic",
+        "pages_read": 0,
+        "max_pages": 100
+      },
+      "verb_interactions": {
+        "read": {
+          "response": "You carefully read several pages of the ancient tome. The mystical symbols begin to make sense! You've learned about {knowledge_type}.",
+          "requires": [],
+          "effects": {
+            "score": 25,
+            "set_player_property": {"magical_knowledge": true, "spell_power": 1},
+            "set_item_property": {"pages_read": 25}
+          }
+        },
+        "throw": {
+          "response": "You hurl the heavy tome across the room! It crashes into the wall and falls open, revealing a hidden bookmark with ancient runes.",
+          "requires": [],
+          "effects": {
+            "score": -10,
+            "move_item_to_room": true,
+            "set_flag": {"tome_bookmark_revealed": true}
+          }
+        },
+        "touch": {
+          "response": "The tome feels warm to the touch, almost alive. You sense great power within its pages.",
+          "requires": [],
+          "effects": {
+            "score": 5
+          }
+        }
+      }
+    },
+
+    "crystal_orb": {
+      "name": "crystal orb",
+      "description": "A perfectly spherical crystal orb that seems to contain swirling mists. It pulses with inner light.",
+      "can_take": true,
+      "aliases": ["orb", "crystal", "sphere"],
+      "properties": {
+        "charged": false,
+        "visions_seen": 0
+      },
+      "verb_interactions": {
+        "cast": {
+          "response": "You focus your magical energy into the crystal orb! It blazes with brilliant light, showing you visions of hidden secrets throughout the realm!",
+          "requires": ["property:magical_knowledge=true"],
+          "effects": {
+            "score": 50,
+            "set_item_property": {"charged": true, "visions_seen": 3},
+            "set_player_property": {"oracle_visions": true},
+            "set_flag": {"orb_activated": true}
+          },
+          "failure_response": "The orb remains dim. You need magical knowledge to activate it."
+        },
+        "shake": {
+          "response": "You shake the crystal orb vigorously. The mists inside swirl faster, but nothing else happens.",
+          "requires": [],
+          "effects": {
+            "score": 2
+          }
+        },
+        "break": {
+          "response": "You smash the crystal orb! It shatters into a thousand pieces, releasing all its stored magical energy in a blinding flash!",
+          "requires": [],
+          "effects": {
+            "score": -50,
+            "remove_item": true,
+            "set_flag": {"orb_destroyed": true},
+            "set_player_property": {"cursed": true}
+          }
+        }
+      }
+    },
+
+    "rusty_sword": {
+      "name": "rusty sword",
+      "description": "An old iron sword, heavily rusted and dull. With some work, it might be restored to usefulness.",
+      "can_take": true,
+      "aliases": ["sword", "blade", "weapon"],
+      "properties": {
+        "sharpness": 1,
+        "condition": "rusty",
+        "enchanted": false
+      },
+      "verb_interactions": {
+        "enchant": {
+          "response": "You speak magical words over the rusty sword! Ancient runes appear along the blade as it transforms into a gleaming enchanted weapon!",
+          "requires": ["property:magical_knowledge=true", "item:crystal_orb"],
+          "effects": {
+            "score": 100,
+            "set_item_property": {"sharpness": 10, "condition": "enchanted", "enchanted": true},
+            "set_flag": {"sword_enchanted": true}
+          },
+          "failure_response": "You need both magical knowledge and a focus crystal to enchant the sword."
+        },
+        "throw": {
+          "response": "You throw the sword! It clatters across the floor, looking even more battered than before.",
+          "requires": [],
+          "effects": {
+            "score": -5,
+            "move_item_to_room": true,
+            "set_item_property": {"condition": "damaged"}
+          }
+        }
+      }
+    },
+
+    "mysterious_lever": {
+      "name": "mysterious lever",
+      "description": "A heavy iron lever mounted on the wall. It's currently in the down position.",
+      "can_take": false,
+      "aliases": ["lever", "switch"],
+      "properties": {
+        "position": "down",
+        "times_pulled": 0
+      },
+      "verb_interactions": {
+        "pull": {
+          "response": "You pull the mysterious lever! You hear rumbling from deep within the walls as hidden mechanisms activate.",
+          "requires": [],
+          "effects": {
+            "score": 20,
+            "set_item_property": {"position": "up", "times_pulled": 1},
+            "set_flag": {"lever_activated": true},
+            "add_room_exit": {"direction": "secret", "to_room": "hidden_chamber"}
+          }
+        },
+        "push": {
+          "response": "You push the lever back down. The rumbling stops and you hear mechanisms resetting.",
+          "requires": [],
+          "effects": {
+            "set_item_property": {"position": "down"},
+            "set_flag": {"lever_activated": false}
+          }
+        }
+      }
+    },
+
+    "magic_mirror": {
+      "name": "magic mirror",
+      "description": "An ornate silver mirror that seems to show more than just your reflection. Sometimes you glimpse other places in its surface.",
+      "can_take": false,
+      "aliases": ["mirror", "looking glass"],
+      "properties": {
+        "active": false,
+        "destinations_shown": []
+      },
+      "verb_interactions": {
+        "look": {
+          "response": "You gaze into the magic mirror. Instead of your reflection, you see visions of other locations in the realm!",
+          "requires": ["flag:orb_activated"],
+          "effects": {
+            "score": 30,
+            "set_item_property": {"active": true},
+            "set_player_property": {"scrying_ability": true}
+          },
+          "failure_response": "The mirror shows only your normal reflection. Perhaps it needs to be activated somehow."
+        },
+        "touch": {
+          "response": "You touch the mirror's surface. It ripples like water! Your hand passes through - it's a portal!",
+          "requires": ["property:scrying_ability=true"],
+          "effects": {
+            "score": 50,
+            "teleport_to": "mirror_realm",
+            "set_flag": {"entered_mirror": true}
+          },
+          "failure_response": "The mirror surface is solid glass. Nothing happens."
+        },
+        "break": {
+          "response": "You smash the magic mirror! Bad luck befalls you as seven years of misfortune begin!",
+          "requires": [],
+          "effects": {
+            "score": -100,
+            "remove_item": true,
+            "set_player_property": {"cursed": true, "luck": -7}
+          }
+        }
+      }
+    },
+
+    "glowing_mushroom": {
+      "name": "glowing mushroom",
+      "description": "A bioluminescent mushroom that emits a soft blue glow. It looks both beautiful and potentially dangerous.",
+      "can_take": true,
+      "aliases": ["mushroom", "fungus", "shroom"],
+      "properties": {
+        "luminosity": 5,
+        "edible": false,
+        "poisonous": true
+      },
+      "verb_interactions": {
+        "smell": {
+          "response": "The mushroom has a sweet, almost intoxicating aroma. Your head feels slightly dizzy from the scent.",
+          "requires": [],
+          "effects": {
+            "score": 10,
+            "set_player_property": {"dizzy": true}
+          }
+        },
+        "taste": {
+          "response": "You carefully taste the mushroom. It's incredibly bitter! Suddenly you feel very sick.",
+          "requires": [],
+          "effects": {
+            "score": -20,
+            "set_player_property": {"poisoned": true, "health": -10}
+          }
+        },
+        "light": {
+          "response": "You don't need to light the mushroom - it already glows with its own natural bioluminescence!",
+          "requires": [],
+          "effects": {
+            "score": 5
+          }
+        }
+      }
+    },
+
+    "ancient_scroll": {
+      "name": "ancient scroll",
+      "description": "A weathered parchment scroll tied with a golden ribbon. Ancient words are written in fading ink.",
+      "can_take": true,
+      "aliases": ["scroll", "parchment"],
+      "properties": {
+        "spell": "portal",
+        "language": "ancient_elvish",
+        "translated": false
+      },
+      "verb_interactions": {
+        "read": {
+          "response": "The scroll is written in an ancient language you don't understand. The symbols look elvish in origin.",
+          "requires": [],
+          "effects": {
+            "score": 10,
+            "set_player_property": {"seen_elvish": true}
+          }
+        },
+        "cast": {
+          "response": "You speak the ancient elvish words from the scroll! A shimmering portal opens before you!",
+          "requires": ["property:magical_knowledge=true", "property:seen_elvish=true"],
+          "effects": {
+            "score": 75,
+            "remove_item": true,
+            "add_room_exit": {"direction": "portal", "to_room": "elvish_sanctuary"},
+            "set_flag": {"portal_opened": true}
+          },
+          "failure_response": "The ancient words have no effect. You need both magical knowledge and understanding of the elvish language."
+        }
+      }
+    },
+
+    "heavy_boulder": {
+      "name": "heavy boulder",
+      "description": "A massive stone boulder blocking part of the passage. It looks like it could be moved with enough strength.",
+      "can_take": false,
+      "aliases": ["boulder", "rock", "stone"],
+      "properties": {
+        "weight": 1000,
+        "moved": false
+      },
+      "verb_interactions": {
+        "move_object": {
+          "response": "You strain against the heavy boulder! With tremendous effort, you manage to roll it aside, revealing a hidden passage!",
+          "requires": ["property:strength>=5"],
+          "effects": {
+            "score": 40,
+            "set_item_property": {"moved": true},
+            "add_room_exit": {"direction": "behind", "to_room": "hidden_cave"},
+            "set_flag": {"boulder_moved": true}
+          },
+          "failure_response": "The boulder is too heavy for you to move. You need more strength."
+        },
+        "push": {
+          "response": "You push against the boulder with all your might, but it barely budges. You're not strong enough.",
+          "requires": [],
+          "effects": {
+            "score": 5,
+            "set_player_property": {"attempted_boulder": true}
+          }
+        }
+      }
+    },
+
+    "strength_potion": {
+      "name": "strength potion",
+      "description": "A bubbling red potion in a small glass vial. It smells of iron and determination.",
+      "can_take": true,
+      "aliases": ["potion", "elixir", "vial"],
+      "properties": {
+        "effect_duration": 10,
+        "strength_bonus": 5
+      },
+      "verb_interactions": {
+        "smell": {
+          "response": "The potion smells metallic and powerful, like liquid strength itself.",
+          "requires": [],
+          "effects": {
+            "score": 5
+          }
+        },
+        "taste": {
+          "response": "You drink the strength potion! Your muscles bulge with incredible power!",
+          "requires": [],
+          "effects": {
+            "score": 30,
+            "remove_item": true,
+            "set_player_property": {"strength": 10, "enhanced": true},
+            "set_flag": {"strength_enhanced": true}
+          }
+        }
+      }
+    }
+  },
+
+  "rooms": {
+    "wizard_study": {
+      "name": "Wizard's Study",
+      "description": "You stand in a cluttered wizard's study filled with books, scrolls, and magical artifacts. Candles flicker mysteriously without any wind. A heavy oak desk dominates the center of the room.",
+      "exits": {
+        "north": "enchanted_garden",
+        "east": "library_archives",
+        "down": "basement_laboratory"
+      },
+      "items": ["ancient_tome", "crystal_orb", "mysterious_lever"],
+      "properties": {
+        "magical_aura": true,
+        "light_level": "dim",
+        "starting_room": true
+      }
+    },
+
+    "enchanted_garden": {
+      "name": "Enchanted Garden",
+      "description": "A magical garden where plants glow with ethereal light. Flowers sing soft melodies and trees whisper ancient secrets. A crystal-clear pond reflects the starry sky above.",
+      "exits": {
+        "south": "wizard_study",
+        "west": "fairy_grove",
+        "east": "crystal_cavern"
+      },
+      "items": ["glowing_mushroom", "strength_potion"],
+      "properties": {
+        "magical_aura": true,
+        "light_level": "bright",
+        "healing_properties": true
+      }
+    },
+
+    "library_archives": {
+      "name": "Ancient Library Archives",
+      "description": "Towering bookshelves stretch to impossible heights, filled with tomes of forgotten knowledge. A magical ladder slides along the shelves, and floating books occasionally drift past like gentle spirits.",
+      "exits": {
+        "west": "wizard_study",
+        "north": "secret_vault"
+      },
+      "items": ["ancient_scroll", "rusty_sword"],
+      "properties": {
+        "knowledge_bonus": true,
+        "light_level": "bright"
+      }
+    },
+
+    "hidden_chamber": {
+      "name": "Hidden Chamber",
+      "description": "A secret chamber revealed by the mysterious lever! Ancient machinery lines the walls, and glowing crystals provide illumination. This appears to be some sort of control room.",
+      "exits": {
+        "secret": "wizard_study"
+      },
+      "items": ["magic_mirror"],
+      "properties": {
+        "technological": true,
+        "light_level": "bright",
+        "requires_lever": true
+      }
+    },
+
+    "mirror_realm": {
+      "name": "Realm Beyond the Mirror",
+      "description": "You've stepped through the magic mirror into a surreal realm where everything is reversed. The sky is below your feet and gravity seems optional. Floating islands drift in the silver void.",
+      "exits": {
+        "back": "hidden_chamber",
+        "up": "sky_palace",
+        "down": "void_depths"
+      },
+      "items": [],
+      "properties": {
+        "otherworldly": true,
+        "gravity_reversed": true,
+        "requires_mirror": true
+      }
+    },
+
+    "hidden_cave": {
+      "name": "Hidden Cave Behind the Boulder",
+      "description": "A narrow cave hidden behind the boulder you moved. Ancient paintings cover the walls, depicting heroes of ages past. A chest sits in the far corner, untouched by time.",
+      "exits": {
+        "behind": "crystal_cavern"
+      },
+      "items": ["heavy_boulder"],
+      "properties": {
+        "historical": true,
+        "light_level": "dark",
+        "requires_strength": true
+      }
+    },
+
+    "crystal_cavern": {
+      "name": "Crystal Cavern",
+      "description": "A magnificent cavern filled with naturally formed crystals that ring like bells when the wind passes through them. The sound creates a haunting melody that seems to tell ancient stories.",
+      "exits": {
+        "west": "enchanted_garden",
+        "behind": "hidden_cave"
+      },
+      "items": [],
+      "properties": {
+        "musical": true,
+        "light_level": "bright",
+        "crystal_resonance": true
+      }
+    },
+
+    "elvish_sanctuary": {
+      "name": "Ancient Elvish Sanctuary",
+      "description": "A sacred elvish temple filled with silver light and the sound of distant singing. Intricate carvings tell stories of the elder days, and the air shimmers with ancient magic.",
+      "exits": {
+        "portal": "library_archives"
+      },
+      "items": [],
+      "properties": {
+        "sacred": true,
+        "elvish_magic": true,
+        "light_level": "radiant",
+        "requires_portal": true
+      }
+    },
+
+    "victory_chamber": {
+      "name": "Chamber of Ultimate Knowledge",
+      "description": "You have reached the ultimate destination! This chamber contains the accumulated wisdom of ages. Floating books write themselves, crystals hum with pure knowledge, and you feel enlightened beyond measure.",
+      "exits": {
+        "anywhere": "wizard_study"
+      },
+      "items": [],
+      "properties": {
+        "victory_room": true,
+        "ultimate_knowledge": true,
+        "transcendent": true
+      }
+    }
+  },
+
+  "event_handlers": [
+    {
+      "_comment": "Strength requirement for moving boulder",
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "command",
+        "verb": "move_object"
+      },
+      "script": "if 'boulder' in event.data.get('full_command', ''):\n    if not player.get_property('strength', 0) >= 5:\n        response = 'You strain against the boulder but lack the strength to move it. Perhaps you need to enhance your abilities somehow.'\n    else:\n        response = None\nelse:\n    response = None"
+    },
+
+    {
+      "_comment": "Healing effect when entering enchanted garden while poisoned",
+      "type": "script",
+      "scope": "room:enchanted_garden",
+      "conditions": {
+        "event_type": "player_moved"
+      },
+      "script": "if player.get_property('poisoned'):\n    player.set_property('poisoned', False)\n    player.set_property('health', player.get_property('health', 100) + 20)\n    response = '\\nThe magical aura of the garden heals your ailments! You feel much better.'\nelse:\n    response = None"
+    },
+
+    {
+      "_comment": "Victory condition - reaching victory chamber with all major accomplishments",
+      "type": "script",
+      "scope": "room:victory_chamber",
+      "conditions": {
+        "event_type": "look_room"
+      },
+      "script": "accomplishments = 0\nif game_state.get_flag('orb_activated'): accomplishments += 1\nif game_state.get_flag('sword_enchanted'): accomplishments += 1\nif game_state.get_flag('lever_activated'): accomplishments += 1\nif game_state.get_flag('portal_opened'): accomplishments += 1\nif game_state.get_flag('boulder_moved'): accomplishments += 1\n\nif accomplishments >= 3 and not game_state.get_flag('ultimate_victory'):\n    game_state.set_flag('ultimate_victory', True)\n    player.score += 500\n    response = '\\n\\n🎉 *** ULTIMATE VICTORY! *** 🎉\\nYou have mastered the arcane arts and overcome great challenges! Your wisdom and power are now legendary! Final Score: ' + str(player.score) + ' points!'\nelse:\n    response = None"
+    },
+
+    {
+      "_comment": "Automatic translation when player has both elvish knowledge and magical knowledge",
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "command"
+      },
+      "script": "if event.data.get('verb') == 'read' and 'scroll' in event.data.get('full_command', ''):\n    if player.get_property('magical_knowledge') and player.get_property('seen_elvish'):\n        scroll = None\n        current_room = game_state.get_room(player.current_room)\n        for item in current_room.items + player.inventory:\n            if 'scroll' in item.name.lower():\n                scroll = item\n                break\n        if scroll and not scroll.get_property('translated'):\n            scroll.set_property('translated', True)\n            response = '\\nWith your magical knowledge and familiarity with elvish, the ancient words become clear: \"By the power of the ancients, let a doorway be opened between realms.\"'\n        else:\n            response = None\n    else:\n        response = None\nelse:\n    response = None"
+    },
+
+    {
+      "_comment": "Dynamic room description changes based on player actions",
+      "type": "script",
+      "scope": "room:wizard_study", 
+      "conditions": {
+        "event_type": "look_room"
+      },
+      "script": "room = game_state.get_room('wizard_study')\noriginal_desc = 'You stand in a cluttered wizard\\'s study filled with books, scrolls, and magical artifacts. Candles flicker mysteriously without any wind. A heavy oak desk dominates the center of the room.'\n\nif game_state.get_flag('lever_activated'):\n    room.description = original_desc + ' A section of the wall has slid away, revealing a secret passage.'\nelif game_state.get_flag('orb_activated'):\n    room.description = original_desc + ' The room now glows with residual magical energy from your crystal orb activation.'\nelse:\n    room.description = original_desc\n\nresponse = None"
+    },
+
+    {
+      "_comment": "Curse removal event - using enchanted sword while cursed",
+      "type": "script",
+      "scope": "global",
+      "conditions": {
+        "event_type": "use_item"
+      },
+      "script": "if event.data.get('item1') and 'sword' in event.data['item1'].name and event.data['item1'].get_property('enchanted'):\n    if player.get_property('cursed'):\n        player.set_property('cursed', False)\n        player.set_property('luck', 0)\n        player.score += 50\n        response = '\\nThe enchanted sword glows brightly! Its pure magic breaks the curse that afflicted you. You feel the dark influence lift from your soul.'\n    else:\n        response = None\nelse:\n    response = None"
+    }
+  ],
+
+  "initial_flags": {
+    "lever_activated": false,
+    "orb_activated": false,
+    "sword_enchanted": false,
+    "portal_opened": false,
+    "boulder_moved": false,
+    "tome_bookmark_revealed": false,
+    "orb_destroyed": false,
+    "entered_mirror": false,
+    "strength_enhanced": false,
+    "ultimate_victory": false
+  }
+}
